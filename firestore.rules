@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper: Check if requesting user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles to display names, skill levels, etc.
+      allow read: if isAuthenticated();
+      // Users can only create or update their own user documents
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      allow delete: if false; // Profiles shouldn't be hard-deleted directly from client
+    }
+
+    // Matches Collection
+    match /matches/{matchId} {
+      // Authenticated users can browse all matches
+      allow read: if isAuthenticated();
+      // Authenticated users can create or modify matches
+      allow create, update: if isAuthenticated();
+      // Only the match organizer can delete a match
+      allow delete: if isAuthenticated() && resource.data.organizerId == request.auth.uid;
+    }
+
+    // Participants Collection
+    match /participants/{participantId} {
+      // Authenticated users can see who is participating in what match
+      allow read: if isAuthenticated();
+      // Authenticated users can join a match
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Users can update their own status (attendance/cancellation), or the match organizer can update attendance
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.organizerId == request.auth.uid
+      );
+      // Users can leave a match
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      // Users can only read and manage their own notifications
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Any authenticated user/system can create a notification for another user
+      allow create: if isAuthenticated();
+    }
+  }
+}

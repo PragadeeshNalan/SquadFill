@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "522146566714",
+    "project_id": "squadfill-4f0fa",
+    "storage_bucket": "squadfill-4f0fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:522146566714:android:04c5dcca0ba40f83dbdb03",
+        "android_client_info": {
+          "package_name": "com.squadfill.squadfill"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcsxUGlrZSEoiNLBqjrrjyFGSN7kwchz8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
