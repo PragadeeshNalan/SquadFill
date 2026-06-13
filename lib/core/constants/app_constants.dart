@@ -8,6 +8,7 @@ class AppConstants {
   static const String matchesCollection = 'matches';
   static const String participantsCollection = 'participants';
   static const String notificationsCollection = 'notifications';
+  static const String skillFeedbackCollection = 'skill_feedback';
 
   // Sport Preference Values
   static const List<String> sports = [

@@ -19,12 +19,16 @@ class _MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
 
   // Active screens list
+  // In lib/presentation/screens/main_shell.dart
+
+// Update the _screens list to use the correct class names:
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const MatchListScreen(),
-    const FakeMapsScreen(),
-    const FakeProfileScreen(),
+    const MatchListScreen(), // Corrected from MatchesScreen
+    const FakeProfileScreen(), // Corrected from ProfileScreen
   ];
+
+// Note: NearbyMapScreen has been removed as you requested to remove the Map section.
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +64,8 @@ class _MainShellState extends ConsumerState<MainShell> {
           children: [
             _buildNavItem(Icons.space_dashboard_rounded, 'Dashboard', 0),
             _buildNavItem(Icons.sports_soccer_rounded, 'Matches', 1),
-            const SizedBox(width: 48), // Spacer space for floating action button notch
-            _buildNavItem(Icons.map_outlined, 'Maps', 2),
-            _buildNavItem(Icons.person_outline_rounded, 'Profile', 3),
+            const SizedBox(width: 48),
+            _buildNavItem(Icons.person_outline_rounded, 'Profile', 2),
           ],
         ),
       ),

@@ -31,4 +31,7 @@ abstract class MatchRepository {
 
   /// Stream of matches that the user has joined (for Dashboard/Stats).
   Stream<List<MatchModel>> getJoinedMatchesStream(String userId);
+
+  /// Stream of open matches with location coordinates set.
+  Stream<List<MatchModel>> getNearbyMatchesStream();
 }

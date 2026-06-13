@@ -50,6 +50,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   /// Wait for animation, check Riverpod auth stream, and navigate.
   Future<void> _checkSessionState() async {
     await Future.delayed(const Duration(seconds: 2));
+
     if (!mounted) return;
 
     final authState = ref.read(authStateChangesProvider);

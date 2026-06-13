@@ -6,6 +6,7 @@ import 'package:squadfill/presentation/screens/splash_screen.dart';
 import 'package:squadfill/core/constants/app_constants.dart';
 import 'package:squadfill/core/utils/validators.dart';
 import 'package:squadfill/core/theme/app_theme.dart';
+import 'package:squadfill/presentation/screens/main_shell.dart';
 
 /// User registration screen covering credentials and sports bio setup.
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -51,9 +52,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
 
     if (success && mounted) {
-      // Re-trigger auth verification
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const SplashScreen()),
+        MaterialPageRoute(builder: (context) => const MainShell()), // Added 'const'
       );
     }
   }

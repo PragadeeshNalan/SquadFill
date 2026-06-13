@@ -281,4 +281,18 @@ class MatchRepositoryImpl implements MatchRepository {
           return matches;
         });
   }
+
+  @override
+  Stream<List<MatchModel>> getNearbyMatchesStream() {
+    return _firestore
+        .collection(AppConstants.matchesCollection)
+        .where('status', isEqualTo: 'open')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => MatchModel.fromFirestore(doc))
+          .where((m) => m.latitude != 0.0 && m.longitude != 0.0)
+          .toList();
+    });
+  }
 }
