@@ -1,0 +1,246 @@
+name: SecureChat Test Suite — 2000 Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ── Job 1: Backend Load Tests ──────────────────────────────────────────
+  backend-load-tests:
+    name: "Backend Load Tests (500)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start HTTP server
+        run: |
+          cd securechat-tests/app
+          python -m http.server 8765 &
+          sleep 2
+          echo "HTTP server started"
+
+      - name: Start mock WebSocket server
+        run: |
+          cd securechat-tests
+          pip install websockets
+          python backend-load/mock_ws_server.py &
+          sleep 2
+          echo "WS server started"
+
+      - name: Run HTTP load tests (200 tests)
+        run: |
+          cd securechat-tests
+          pytest backend-load/test_http_load.py \
+            -v \
+            --tb=short \
+            --timeout=60 \
+            --junit-xml=reports/load-http-results.xml \
+            -m load
+
+      - name: Run WebSocket load tests (200 tests)
+        run: |
+          cd securechat-tests
+          pytest backend-load/test_ws_load.py \
+            -v \
+            --tb=short \
+            --timeout=60 \
+            --junit-xml=reports/load-ws-results.xml \
+            -m load
+
+      - name: Run concurrent load tests (100 tests)
+        run: |
+          cd securechat-tests
+          pytest backend-load/test_concurrent_load.py \
+            -v \
+            --tb=short \
+            --timeout=120 \
+            --junit-xml=reports/load-concurrent-results.xml \
+            -m load
+
+      - name: Run Locust load test (60 seconds)
+        run: |
+          cd securechat-tests
+          locust \
+            -f backend-load/locustfile.py \
+            --headless \
+            --host=http://localhost:8765 \
+            -u 20 \
+            -r 5 \
+            --run-time 60s \
+            --html=reports/locust-report.html \
+            --csv=reports/locust || true
+
+      - name: Upload load test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-reports
+          path: securechat-tests/reports/
+
+  # ── Job 2: Selenium UI Tests ───────────────────────────────────────────
+  selenium-tests:
+    name: "Selenium UI Tests (500)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Verify Chrome
+        run: google-chrome --version
+
+      - name: Run Selenium test suite (500 tests)
+        run: |
+          cd securechat-tests
+          pytest selenium/ \
+            -v \
+            --tb=short \
+            --timeout=60 \
+            -x \
+            --junit-xml=reports/selenium-results.xml \
+            --html=reports/selenium-report.html \
+            --self-contained-html \
+            -m selenium
+
+      - name: Upload Selenium reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selenium-test-reports
+          path: securechat-tests/reports/
+
+  # ── Job 3: Mobile Chrome Emulation Tests ──────────────────────────────
+  mobile-tests:
+    name: "Mobile Chrome Emulation Tests (500)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run Mobile emulation tests (500 tests)
+        run: |
+          cd securechat-tests
+          pytest mobile/ \
+            -v \
+            --tb=short \
+            --timeout=60 \
+            --junit-xml=reports/mobile-results.xml \
+            --html=reports/mobile-report.html \
+            --self-contained-html \
+            -m mobile
+
+      - name: Upload Mobile reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-test-reports
+          path: securechat-tests/reports/
+
+  # ── Job 4: Vulnerability / Security Tests ─────────────────────────────
+  vulnerability-tests:
+    name: "Vulnerability Tests (500)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run Vulnerability test suite (500 tests)
+        run: |
+          cd securechat-tests
+          pytest vulnerability/ \
+            -v \
+            --tb=short \
+            --timeout=60 \
+            --junit-xml=reports/vulnerability-results.xml \
+            --html=reports/vulnerability-report.html \
+            --self-contained-html \
+            -m vulnerability
+
+      - name: Upload Vulnerability reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vulnerability-test-reports
+          path: securechat-tests/reports/
+
+  # ── Job 5: Aggregate Report ────────────────────────────────────────────
+  aggregate-report:
+    name: "Test Summary Report"
+    runs-on: ubuntu-latest
+    needs:
+      - backend-load-tests
+      - selenium-tests
+      - mobile-tests
+      - vulnerability-tests
+    if: always()
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports/
+
+      - name: Create summary
+        run: |
+          echo "## 🧪 SecureChat Test Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite | Target | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Load Tests | 500 test cases | ${{ needs.backend-load-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Selenium UI Tests  | 500 test cases | ${{ needs.selenium-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mobile Tests       | 500 test cases | ${{ needs.mobile-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerability Tests| 500 test cases | ${{ needs.vulnerability-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: 2000 test cases**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload combined reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-test-reports-combined
+          path: all-reports/
+          retention-days: 30

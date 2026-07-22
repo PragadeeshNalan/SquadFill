@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureChat - End-to-End Encrypted Messaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <style>
+        .message-outgoing {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 1rem 1rem 0 1rem;
+        }
+        .message-incoming {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            border-radius: 1rem 1rem 1rem 0;
+        }
+        .key-visible {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .key-hidden {
+            filter: blur(5px);
+            transition: filter 0.3s ease;
+        }
+        .key-hidden:hover {
+            filter: none;
+        }
+        #messageInput {
+            min-height: 50px;
+            max-height: 150px;
+            resize: none;
+        }
+        .typing-indicator {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .typing-active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto max-w-6xl p-4">
+        <!-- Header Section -->
+        <header class="flex justify-between items-center mb-8 p-4 rounded-lg bg-gray-800 border border-gray-700">
+            <div class="flex items-center space-x-2">
+                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/634a2b9e-4cbc-42b2-924a-db0d18ce284a.png" alt="SecureChat logo - a green shield with a white lock icon in the center" class="h-12 w-12 rounded-lg">
+                <h1 class="text-2xl font-bold">SecureChat</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="changeConnectionBtn" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 rounded-md transition">
+                    Change Connection
+                </button>
+                <span id="connectionStatus" class="px-3 py-1 rounded-full bg-green-500 text-white">Connected</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar with Key Management -->
+            <aside class="lg:col-span-1 bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4">Key Management</h2>
+                
+                <!-- Key Generation Section -->
+                <div class="mb-6 p-4 bg-gray-700 rounded-lg">
+                    <h3 class="font-medium mb-2">Your Encryption Keys</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Public Key</label>
+                            <div class="key-visible p-2 rounded-md key-hidden overflow-x-auto">
+                                <span id="publicKeyDisplay">Generating keys...</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Private Key</label>
+                            <div class="key-visible p-2 rounded-md key-hidden overflow-x-auto">
+                                <span id="privateKeyDisplay">Generating keys...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        <button id="generateKeysBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition">
+                            Generate New Keys
+                        </button>
+                        <button id="copyPublicKeyBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition">
+                            Copy Public Key
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Peer Key Section -->
+                <div class="p-4 bg-gray-700 rounded-lg">
+                    <h3 class="font-medium mb-2">Peer's Public Key</h3>
+                    <textarea id="peerPublicKey" class="w-full bg-gray-800 text-gray-100 border border-gray-600 rounded-md p-2 mb-2 h-24" 
+                              placeholder="Paste peer's public key here..."></textarea>
+                    <button id="verifyPeerKeyBtn" class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition">
+                        Verify & Trust Key
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Chat Area -->
+            <main class="lg:col-span-3 flex flex-col">
+                <!-- Chat Header -->
+                <div class="bg-gray-800 rounded-t-lg p-4 border-b border-gray-700">
+                    <h2 class="text-xl font-semibold">Encrypted Chat</h2>
+                    <div class="flex items-center mt-1 space-x-4">
+                        <span class="text-sm text-gray-400">End-to-End Encrypted</span>
+                        <span id="encryptionStatus" class="text-sm flex items-center">
+                            <span class="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                            <span>Secure Connection</span>
+                        </span>
+                        <span id="typingIndicator" class="typing-indicator text-sm text-gray-400"></span>
+                    </div>
+                </div>
+                
+                <!-- Message Display Area -->
+                <div id="messageContainer" class="flex-1 bg-gray-850 p-4 overflow-y-auto max-h-[60vh]">
+                    <div class="space-y-2" id="messageList">
+                        <div class="text-center py-8">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/bb67643d-5fe2-4eca-9624-ea44d0197a13.png" alt="Illustration of a padlock inside a speech bubble, representing secure messaging" class="mx-auto h-24 opacity-70 mb-4">
+                            <p class="text-gray-500">Send your first encrypted message</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Message Input Area -->
+                <div class="bg-gray-800 rounded-b-lg p-4 border-t border-gray-700">
+                    <textarea id="messageInput" placeholder="Type a message..." class="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-md p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs text-gray-500">Messages are encrypted before sending</div>
+                        <button id="sendMessageBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Connection Settings Modal -->
+        <div id="connectionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4">Connection Settings</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Server URL</label>
+                        <input type="text" id="serverUrl" class="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-md p-2" 
+                    value="wss://your-websocket-server.com" 
+                    placeholder="wss://example.com/socket">
+                <p class="text-xs text-gray-400 mt-1">Use 'wss://' for secure connections</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Room ID</label>
+                        <input type="text" id="roomId" class="w-full bg-gray-700 text-gray-100 border border-gray-600 rounded-md p-2" placeholder="Enter room identifier">
+                    </div>
+                    <div class="flex space-x-3 pt-2">
+                        <button id="connectBtn" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition">Connect</button>
+                        <button id="cancelConnectBtn" class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Module 1: End-to-End Encrypted Communication and Secure Key Management Framework
+        class EncryptionManager {
+            constructor() {
+                this.publicKey = null;
+                this.privateKey = null;
+                this.peerPublicKey = null;
+                this.sessionKey = null;
+                this.keyPair = null;
+            }
+
+            generateRSAKeyPair() {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const rsaKeyPair = forge.pki.rsa.generateKeyPair({bits: 2048, e: 0x10001});
+                        this.keyPair = rsaKeyPair;
+                        this.publicKey = forge.pki.publicKeyToPem(rsaKeyPair.publicKey);
+                        this.privateKey = forge.pki.privateKeyToPem(rsaKeyPair.privateKey);
+                        
+                        // Update UI
+                        document.getElementById('publicKeyDisplay').textContent = this.abbreviateKey(this.publicKey);
+                        document.getElementById('privateKeyDisplay').textContent = this.abbreviateKey(this.privateKey);
+                        
+                        resolve({ publicKey: this.publicKey, privateKey: this.privateKey });
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            generateSessionKey() {
+                // Generate a random 256-bit (32-byte) AES session key
+                this.sessionKey = forge.random.getBytesSync(32);
+                return this.sessionKey;
+            }
+
+            encryptSessionKey(sessionKey, peerPublicKey) {
+                const publicKey = forge.pki.publicKeyFromPem(peerPublicKey);
+                return window.btoa(forge.util.encode64(publicKey.encrypt(sessionKey)));
+            }
+
+            decryptSessionKey(encryptedSessionKey) {
+                const privateKey = forge.pki.privateKeyFromPem(this.privateKey);
+                const decoded = window.atob(encryptedSessionKey);
+                return privateKey.decrypt(forge.util.decode64(decoded));
+            }
+
+            encryptMessage(message, sessionKey) {
+                const iv = forge.random.getBytesSync(16);
+                const cipher = forge.cipher.createCipher('AES-CBC', sessionKey);
+                cipher.start({iv: iv});
+                cipher.update(forge.util.createBuffer(message));
+                cipher.finish();
+                const encrypted = cipher.output;
+                
+                return {
+                    iv: forge.util.encode64(iv),
+                    content: forge.util.encode64(encrypted.getBytes())
+                };
+            }
+
+            decryptMessage(encryptedMessage, sessionKey) {
+                const iv = forge.util.decode64(encryptedMessage.iv);
+                const encrypted = forge.util.decode64(encryptedMessage.content);
+                const decipher = forge.cipher.createDecipher('AES-CBC', sessionKey);
+                decipher.start({iv: iv});
+                decipher.update(forge.util.createBuffer(encrypted));
+                decipher.finish();
+                
+                return decipher.output.toString();
+            }
+
+            setPeerPublicKey(publicKey) {
+                this.peerPublicKey = publicKey;
+                document.getElementById('encryptionStatus').innerHTML = '<span class="h-2 w-2 rounded-full bg-green-500 mr-2"></span><span>Peer key verified</span>';
+            }
+
+            abbreviateKey(key) {
+                if (!key) return '';
+                const parts = key.split('\n');
+                if (parts.length < 4) return key;
+                return parts[1] + ' ... ' + parts[parts.length - 2];
+            }
+
+            static calculateMessageHash(message) {
+                const md = forge.md.sha256.create();
+                md.update(message);
+                return md.digest().toHex();
+            }
+
+            static getKeyFingerprint(keyPem) {
+                const publicKey = forge.pki.publicKeyFromPem(keyPem);
+                const der = forge.asn1.toDer(forge.pki.publicKeyToAsn1(publicKey)).getBytes();
+                const md = forge.md.sha256.create();
+                md.update(der);
+                return md.digest().toHex();
+            }
+        }
+
+        // Module 2: Real-Time Chat Session Management and Synchronization System
+        class ChatSession {
+            constructor(encryptionManager) {
+                this.encryptionManager = encryptionManager;
+                this.socket = null;
+                this.roomId = null;
+                this.peerId = null;
+                this.messageQueue = [];
+                this.isTyping = false;
+                this.lastTypingTime = 0;
+                this.typingCheckInterval = null;
+                
+                this.initEventListeners();
+                this.setupTypingDetection();
+            }
+
+            initEventListeners() {
+                document.getElementById('generateKeysBtn').addEventListener('click', () => {
+                    this.encryptionManager.generateRSAKeyPair()
+                        .then(() => alert('New key pair generated successfully'))
+                        .catch(err => console.error('Key generation error:', err));
+                });
+
+                document.getElementById('copyPublicKeyBtn').addEventListener('click', () => {
+                    if (this.encryptionManager.publicKey) {
+                        navigator.clipboard.writeText(this.encryptionManager.publicKey)
+                            .then(() => alert('Public key copied to clipboard'))
+                            .catch(err => console.error('Copy failed:', err));
+                    }
+                });
+
+                document.getElementById('verifyPeerKeyBtn').addEventListener('click', () => {
+                    const peerKey = document.getElementById('peerPublicKey').value.trim();
+                    if (peerKey && peerKey.includes('PUBLIC KEY')) {
+                        try {
+                            this.encryptionManager.setPeerPublicKey(peerKey);
+                            const fingerprint = EncryptionManager.getKeyFingerprint(peerKey);
+                            alert(`Key verified successfully\nFingerprint: ${fingerprint}`);
+                        } catch (e) {
+                            alert('Invalid public key format');
+                        }
+                    } else {
+                        alert('Please enter a valid public key');
+                    }
+                });
+
+                document.getElementById('sendMessageBtn').addEventListener('click', () => this.sendMessage());
+                document.getElementById('messageInput').addEventListener('keydown', (e) => this.handleKeyDown(e));
+                document.getElementById('messageInput').addEventListener('input', () => this.setTypingStatus(true));
+            }
+
+            setupTypingDetection() {
+                this.typingCheckInterval = setInterval(() => {
+                    if (this.isTyping && Date.now() - this.lastTypingTime > 2000) {
+                        this.setTypingStatus(false);
+                    }
+                }, 500);
+            }
+
+            setTypingStatus(isTyping) {
+                this.isTyping = isTyping;
+                if (isTyping) {
+                    this.lastTypingTime = Date.now();
+                    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                        this.socket.send(JSON.stringify({
+                            type: 'typing',
+                            isTyping: true
+                        }));
+                    }
+                }
+            }
+
+            handleKeyDown(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            }
+
+            connect(serverUrl, roomId) {
+                if (this.socket) {
+                    this.socket.close();
+                }
+
+                this.socket = new WebSocket(`${serverUrl}?room=${roomId}`);
+                this.roomId = roomId;
+
+                this.socket.onopen = () => {
+                    document.getElementById('connectionStatus').className = 'px-3 py-1 rounded-full bg-green-500 text-white';
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                    this.sendLocalPublicKey();
+                    this.processMessageQueue();
+                };
+
+                this.socket.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    this.handleMessage(message);
+                };
+
+                this.socket.onclose = (event) => {
+                    document.getElementById('connectionStatus').className = 'px-3 py-1 rounded-full bg-red-500 text-white';
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                };
+
+                this.socket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            sendLocalPublicKey() {
+                if (this.encryptionManager.publicKey && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify({
+                        type: 'public_key',
+                        key: this.encryptionManager.publicKey
+                    }));
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'public_key':
+                        if (!this.encryptionManager.peerPublicKey) {
+                            const fingerprint = EncryptionManager.getKeyFingerprint(message.key);
+                            if (confirm(`Accept peer public key with fingerprint:\n${fingerprint}?`)) {
+                                this.encryptionManager.setPeerPublicKey(message.key);
+                            }
+                        }
+                        break;
+                        
+                    case 'encrypted':
+                        this.handleEncryptedMessage(message);
+                        break;
+                        
+                    case 'typing':
+                        this.showTypingIndicator(message.isTyping);
+                        break;
+                }
+            }
+
+            handleEncryptedMessage(message) {
+                if (!this.encryptionManager.privateKey) {
+                    alert('Cannot decrypt messages without a private key');
+                    return;
+                }
+
+                try {
+                    // Decrypt the session key first
+                    const decryptedSessionKey = this.encryptionManager.decryptSessionKey(message.sessionKey);
+                    
+                    // Then decrypt the message with the session key
+                    const decrypted = this.encryptionManager.decryptMessage({
+                        iv: message.iv,
+                        content: message.content
+                    }, decryptedSessionKey);
+                    
+                    // Add message to UI
+                    this.addMessageToUI(decrypted, 'incoming');
+                } catch (error) {
+                    console.error('Decryption failed:', error);
+                    alert('Message decryption failed. Possibly due to invalid keys.');
+                }
+            }
+
+            showTypingIndicator(isTyping) {
+                const indicator = document.getElementById('typingIndicator');
+                indicator.classList.toggle('typing-active', isTyping);
+                indicator.textContent = isTyping ? 'Peer is typing...' : '';
+            }
+
+            addMessageToUI(message, direction) {
+                const messageList = document.getElementById('messageList');
+                
+                // Remove placeholder if it exists
+                if (messageList.children.length === 1 && messageList.firstChild.querySelector('img')) {
+                    messageList.innerHTML = '';
+                }
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = `max-w-xs md:max-w-md w-fit p-4 ${direction === 'incoming' ? 'message-incoming' : 'message-outgoing'} ${direction === 'outgoing' ? 'ml-auto' : ''}`;
+                
+                const messageHash = EncryptionManager.calculateMessageHash(message);
+                messageElement.innerHTML = `
+                    <div class="message-text">${message}</div>
+                    <div class="text-xs mt-1 opacity-70">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${messageHash.substring(0, 6)}</div>
+                `;
+                
+                messageList.appendChild(messageElement);
+                messageElement.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            sendMessage() {
+                const messageInput = document.getElementById('messageInput');
+                const message = messageInput.value.trim();
+                
+                if (!message) return;
+                
+                if (!this.encryptionManager.peerPublicKey) {
+                    alert('Please provide and verify your peer\'s public key first');
+                    return;
+                }
+                
+                if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+                    alert('Not connected to server. Please connect first.');
+                    return;
+                }
+                
+                this.setTypingStatus(false);
+                
+                try {
+                    // Generate a new session key for this message
+                    const sessionKey = this.encryptionManager.generateSessionKey();
+                    
+                    // Encrypt the session key with peer's public key
+                    const encryptedSessionKey = this.encryptionManager.encryptSessionKey(sessionKey, this.encryptionManager.peerPublicKey);
+                    
+                    // Encrypt the actual message with the session key
+                    const encryptedMessage = this.encryptionManager.encryptMessage(message, sessionKey);
+                    
+                    // Prepare the message to send
+                    const messageToSend = {
+                        type: 'encrypted',
+                        sessionKey: encryptedSessionKey,
+                        iv: encryptedMessage.iv,
+                        content: encryptedMessage.content
+                    };
+                    
+                    // If we're connected, send immediately
+                    if (this.socket.readyState === WebSocket.OPEN) {
+                        this.socket.send(JSON.stringify(messageToSend));
+                        this.addMessageToUI(message, 'outgoing');
+                    } else {
+                        // Queue the message if we're not connected
+                        this.messageQueue.push(messageToSend);
+                    }
+                    
+                    messageInput.value = '';
+                } catch (error) {
+                    console.error('Encryption failed:', error);
+                    alert('Message encryption failed. Please check your keys.');
+                }
+            }
+
+            processMessageQueue() {
+                while (this.messageQueue.length > 0 && this.socket.readyState === WebSocket.OPEN) {
+                    const message = this.messageQueue.shift();
+                    this.socket.send(JSON.stringify(message));
+                }
+            }
+        }
+
+        // WebSocket URL validation
+        function isValidWebSocketUrl(url) {
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'ws:' || parsed.protocol === 'wss:';
+            } catch {
+                return false;
+            }
+        }
+
+        // WebSocket URL validation
+        function isValidWebSocketUrl(url) {
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'ws:' || parsed.protocol === 'wss:';
+            } catch {
+                return false;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            const encryptionManager = new EncryptionManager();
+            const chatSession = new ChatSession(encryptionManager);
+            
+            // Generate default keys on startup
+            encryptionManager.generateRSAKeyPair()
+                .catch(err => console.error('Initial key generation failed:', err));
+            
+            // Show connection modal by default
+            document.getElementById('connectionModal').classList.remove('hidden');
+            
+            // Connection modal handlers
+            document.getElementById('connectBtn').addEventListener('click', () => {
+                const serverUrl = document.getElementById('serverUrl').value;
+                const roomId = document.getElementById('roomId').value;
+                
+                if (!serverUrl || !roomId) {
+                    alert('Please enter both server URL and room ID');
+                    return;
+                }
+                
+                if (!isValidWebSocketUrl(serverUrl)) {
+                    alert('Invalid WebSocket URL. Must start with ws:// or wss://');
+                    return;
+                }
+                
+                chatSession.connect(serverUrl, roomId);
+                document.getElementById('connectionModal').classList.add('hidden');
+            });
+            
+            document.getElementById('cancelConnectBtn').addEventListener('click', () => {
+                document.getElementById('connectionModal').classList.add('hidden');
+            });
+
+            document.getElementById('changeConnectionBtn').addEventListener('click', () => {
+                document.getElementById('connectionModal').classList.remove('hidden');
+            });
+
+            document.getElementById('changeConnectionBtn').addEventListener('click', () => {
+                document.getElementById('connectionModal').classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
