@@ -28,14 +28,13 @@ jobs:
 
       - name: Start HTTP server
         run: |
-          cd securechat-tests/app
+          cd app
           python -m http.server 8765 &
           sleep 2
           echo "HTTP server started"
 
       - name: Start mock WebSocket server
         run: |
-          cd securechat-tests
           pip install websockets
           python backend-load/mock_ws_server.py &
           sleep 2
@@ -43,7 +42,6 @@ jobs:
 
       - name: Run HTTP load tests (200 tests)
         run: |
-          cd securechat-tests
           pytest backend-load/test_http_load.py \
             -v \
             --tb=short \
@@ -53,7 +51,6 @@ jobs:
 
       - name: Run WebSocket load tests (200 tests)
         run: |
-          cd securechat-tests
           pytest backend-load/test_ws_load.py \
             -v \
             --tb=short \
@@ -63,7 +60,6 @@ jobs:
 
       - name: Run concurrent load tests (100 tests)
         run: |
-          cd securechat-tests
           pytest backend-load/test_concurrent_load.py \
             -v \
             --tb=short \
@@ -73,7 +69,6 @@ jobs:
 
       - name: Run Locust load test (60 seconds)
         run: |
-          cd securechat-tests
           locust \
             -f backend-load/locustfile.py \
             --headless \
@@ -89,7 +84,7 @@ jobs:
         if: always()
         with:
           name: load-test-reports
-          path: securechat-tests/reports/
+          path: reports/
 
   # ── Job 2: Selenium UI Tests ───────────────────────────────────────────
   selenium-tests:
@@ -113,9 +108,22 @@ jobs:
       - name: Verify Chrome
         run: google-chrome --version
 
+      - name: Start HTTP server
+        run: |
+          cd app
+          python -m http.server 8765 &
+          sleep 2
+          echo "HTTP server started"
+
+      - name: Start mock WebSocket server
+        run: |
+          pip install websockets
+          python backend-load/mock_ws_server.py &
+          sleep 2
+          echo "WS server started"
+
       - name: Run Selenium test suite (500 tests)
         run: |
-          cd securechat-tests
           pytest selenium/ \
             -v \
             --tb=short \
@@ -131,7 +139,7 @@ jobs:
         if: always()
         with:
           name: selenium-test-reports
-          path: securechat-tests/reports/
+          path: reports/
 
   # ── Job 3: Mobile Chrome Emulation Tests ──────────────────────────────
   mobile-tests:
@@ -152,9 +160,22 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
+      - name: Start HTTP server
+        run: |
+          cd app
+          python -m http.server 8765 &
+          sleep 2
+          echo "HTTP server started"
+
+      - name: Start mock WebSocket server
+        run: |
+          pip install websockets
+          python backend-load/mock_ws_server.py &
+          sleep 2
+          echo "WS server started"
+
       - name: Run Mobile emulation tests (500 tests)
         run: |
-          cd securechat-tests
           pytest mobile/ \
             -v \
             --tb=short \
@@ -169,7 +190,7 @@ jobs:
         if: always()
         with:
           name: mobile-test-reports
-          path: securechat-tests/reports/
+          path: reports/
 
   # ── Job 4: Vulnerability / Security Tests ─────────────────────────────
   vulnerability-tests:
@@ -190,9 +211,22 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
+      - name: Start HTTP server
+        run: |
+          cd app
+          python -m http.server 8765 &
+          sleep 2
+          echo "HTTP server started"
+
+      - name: Start mock WebSocket server
+        run: |
+          pip install websockets
+          python backend-load/mock_ws_server.py &
+          sleep 2
+          echo "WS server started"
+
       - name: Run Vulnerability test suite (500 tests)
         run: |
-          cd securechat-tests
           pytest vulnerability/ \
             -v \
             --tb=short \
@@ -207,7 +241,7 @@ jobs:
         if: always()
         with:
           name: vulnerability-test-reports
-          path: securechat-tests/reports/
+          path: reports/
 
   # ── Job 5: Aggregate Report ────────────────────────────────────────────
   aggregate-report:
