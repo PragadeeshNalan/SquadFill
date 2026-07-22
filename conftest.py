@@ -40,13 +40,17 @@ def http_server():
     orig = os.getcwd()
     os.chdir(APP_DIR)
     socketserver.TCPServer.allow_reuse_address = True
-    _httpd = socketserver.TCPServer(("", HTTP_PORT), _QuietHandler)
-    t = threading.Thread(target=_httpd.serve_forever, daemon=True)
-    t.start()
-    _server_started = True
+    try:
+        _httpd = socketserver.TCPServer(("", HTTP_PORT), _QuietHandler)
+        t = threading.Thread(target=_httpd.serve_forever, daemon=True)
+        t.start()
+        _server_started = True
+    except OSError:
+        pass
     time.sleep(0.5)
     yield APP_URL
-    _httpd.shutdown()
+    if _httpd:
+        _httpd.shutdown()
     os.chdir(orig)
 
 

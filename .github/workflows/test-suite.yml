@@ -29,14 +29,14 @@ jobs:
       - name: Start HTTP server
         run: |
           cd app
-          python -m http.server 8765 &
+          nohup python -m http.server 8765 > http_server.log 2>&1 &
           sleep 2
           echo "HTTP server started"
 
       - name: Start mock WebSocket server
         run: |
           pip install websockets
-          python backend-load/mock_ws_server.py &
+          nohup python backend-load/mock_ws_server.py > ws_server.log 2>&1 &
           sleep 2
           echo "WS server started"
 
@@ -111,14 +111,14 @@ jobs:
       - name: Start HTTP server
         run: |
           cd app
-          python -m http.server 8765 &
+          nohup python -m http.server 8765 > http_server.log 2>&1 &
           sleep 2
           echo "HTTP server started"
 
       - name: Start mock WebSocket server
         run: |
           pip install websockets
-          python backend-load/mock_ws_server.py &
+          nohup python backend-load/mock_ws_server.py > ws_server.log 2>&1 &
           sleep 2
           echo "WS server started"
 
@@ -163,14 +163,14 @@ jobs:
       - name: Start HTTP server
         run: |
           cd app
-          python -m http.server 8765 &
+          nohup python -m http.server 8765 > http_server.log 2>&1 &
           sleep 2
           echo "HTTP server started"
 
       - name: Start mock WebSocket server
         run: |
           pip install websockets
-          python backend-load/mock_ws_server.py &
+          nohup python backend-load/mock_ws_server.py > ws_server.log 2>&1 &
           sleep 2
           echo "WS server started"
 
@@ -214,14 +214,14 @@ jobs:
       - name: Start HTTP server
         run: |
           cd app
-          python -m http.server 8765 &
+          nohup python -m http.server 8765 > http_server.log 2>&1 &
           sleep 2
           echo "HTTP server started"
 
       - name: Start mock WebSocket server
         run: |
           pip install websockets
-          python backend-load/mock_ws_server.py &
+          nohup python backend-load/mock_ws_server.py > ws_server.log 2>&1 &
           sleep 2
           echo "WS server started"
 
