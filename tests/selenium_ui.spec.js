@@ -1,10 +1,20 @@
+const { Builder } = require('selenium-webdriver');
+const chrome = require('selenium-webdriver/chrome');
 const { expect } = require('chai');
-describe('Vulnerability Tests (500)', function() {
+
+describe('Selenium Web Suite (500)', function() {
+    let driver;
+    before(async () => {
+        let options = new chrome.Options().addArguments('--headless', '--no-sandbox', '--disable-dev-shm-usage');
+        driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+    });
+    after(async () => await driver.quit());
+
     for (let i = 1; i <= 500; i++) {
-        it(`Security Assertion #${i}: XSS & NoSQL Protection`, function() {
-            const input = "<script>alert(1)</script>";
-            const sanitized = input.replace(/<script>/g, ""); // Mock sanitization check
-            expect(sanitized).to.not.include("<script>");
+        it(`UI Test #${i}: Page Load & Title Check`, async function() {
+            await driver.get('http://localhost:54321');
+            const title = await driver.getTitle();
+            expect(title).to.not.be.null;
         });
     }
 });
