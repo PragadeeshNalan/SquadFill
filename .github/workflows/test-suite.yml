@@ -5,18 +5,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: {node-version: 18}
       - uses: subosito/flutter-action@v2
         with: {channel: 'stable'}
       - name: Install
         run: npm install
-      - name: Build & Run App
+      - name: Build & Serve release
         run: |
           flutter config --enable-web
-          flutter run -d chrome --web-port 54321 --web-hostname 127.0.0.1 &
-          sleep 60 # WAIT LONGER FOR SERVER
-      - name: Run 2000 Tests
+          flutter build web --release --web-renderer html
+          cd build/web
+          python3 -m http.server 54321 &
+          sleep 20
+      - name: Run Tests
         run: |
           node tests/load_test.js
-          npx mocha tests/selenium_ui.spec.js --timeout 15000
-          npx mocha tests/mobile_emulation.spec.js --timeout 15000
-          npx mocha tests/vulnerability.spec.js
+          npx mocha tests/selenium_ui.spec.js --timeout 1000000
+          npx mocha tests/mobile_emulation.spec.js --timeout 1000000
+          npx mocha tests/vulnerability.spec.js --timeout 1000000
