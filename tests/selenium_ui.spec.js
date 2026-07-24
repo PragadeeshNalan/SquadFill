@@ -1,4 +1,4 @@
-const { Builder } = require('selenium-webdriver');
+const { Builder, By } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const { expect } = require('chai');
 
@@ -8,10 +8,10 @@ describe('Selenium Web Suite (500)', function() {
         let options = new chrome.Options().addArguments('--headless', '--no-sandbox', '--disable-dev-shm-usage');
         driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
     });
-    after(async () => await driver.quit());
+    after(async () => { if (driver) await driver.quit(); });
 
     for (let i = 1; i <= 500; i++) {
-        it(`UI Test #${i}: Page Load & Title Check`, async function() {
+        it(`UI Test #${i}: Page Load & Navigation`, async function() {
             await driver.get('http://localhost:54321');
             const title = await driver.getTitle();
             expect(title).to.not.be.null;

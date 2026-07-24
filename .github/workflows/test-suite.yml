@@ -20,7 +20,8 @@ jobs:
       - name: Install Dependencies
         run: |
           npm install
-          # Fix execution permissions for local binaries
+          # Fix execution permissions for Selenium Manager (Linux)
+          find node_modules/selenium-webdriver/bin/ -name "selenium-manager" -exec chmod +x {} \;
           chmod -R +x node_modules/.bin
 
       - name: Build & Serve Release

@@ -7,7 +7,7 @@ describe('Mobile Emulation Suite (500)', function() {
         let options = new chrome.Options().addArguments('--headless', '--no-sandbox', '--disable-dev-shm-usage');
         driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
     });
-    after(async () => await driver.quit());
+    after(async () => { if (driver) await driver.quit(); });
 
     for (let i = 1; i <= 500; i++) {
         it(`Mobile Profile #${i}: Responsive Resize Check`, async function() {

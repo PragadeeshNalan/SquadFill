@@ -8,13 +8,13 @@ async function run() {
     for (let i = 0; i < TOTAL; i++) {
         await new Promise(r => {
             https.get(URL, (res) => {
-                if (res.statusCode < 500) passed++; // 200/403 means reachable
+                if (res.statusCode < 500) passed++;
                 r();
             }).on('error', r);
         });
         if (i % 100 === 0) console.log(`Completed ${i} backend hits...`);
     }
-    console.log(`✅ Passed: ${passed}/${TOTAL}`);
+    console.log(`✅ Passed: ${passed}/500`);
     process.exit(passed > 400 ? 0 : 1);
 }
 run();
