@@ -1,26 +1,46 @@
 name: SquadFill Full Test Suite
 on: [push]
+
 jobs:
   all-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with: {node-version: 18}
-      - uses: subosito/flutter-action@v2
-        with: {channel: 'stable'}
-      - name: Install
-        run: npm install
-      - name: Build & Serve release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          # Fix execution permissions for local binaries
+          chmod -R +x node_modules/.bin
+
+      - name: Build & Serve Release
         run: |
           flutter config --enable-web
           flutter build web --release
           cd build/web
           python3 -m http.server 54321 &
-          sleep 30
-      - name: Run Tests
+          sleep 40 # Give the server plenty of time to warm up
+
+      - name: Run 2000 Tests
         run: |
+          # 1. Backend Load Tests (500)
           node tests/load_test.js
+
+          # 2. Selenium UI Tests (500)
           npx mocha tests/selenium_ui.spec.js --timeout 1000000
+
+          # 3. Mobile Emulation Tests (500)
           npx mocha tests/mobile_emulation.spec.js --timeout 1000000
+
+          # 4. Vulnerability Tests (500)
           npx mocha tests/vulnerability.spec.js --timeout 1000000
