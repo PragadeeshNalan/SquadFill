@@ -3,35 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:squadfill/firebase_options.dart';
 import 'package:squadfill/core/theme/app_theme.dart';
+import 'package:squadfill/presentation/screens/onboarding_screen.dart';
 import 'package:squadfill/presentation/screens/splash_screen.dart';
+import 'package:squadfill/presentation/screens/main_shell.dart';
+import 'package:squadfill/presentation/providers/auth_providers.dart';
 
-/// Entry point of the SquadFill application.
 void main() async {
-  // Ensure widget bindings are initialized before async setup
   WidgetsFlutterBinding.ensureInitialized();
-  
   try {
-    // Initialize Firebase services using standard resolved options
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
-    // Catch initialization errors if mock keys are present or offline,
-    // logging the warning but keeping the UI shell operational.
     debugPrint("Firebase initialization failed: $e");
   }
-
-  // Wrap root widget in Riverpod's ProviderScope for state management
-  runApp(
-    const ProviderScope(
-      child: SquadFillApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: SquadFillApp()));
 }
 
-/// Root widget configuring material design attributes.
 class SquadFillApp extends StatelessWidget {
-  /// Default constructor for [SquadFillApp].
   const SquadFillApp({super.key});
 
   @override
@@ -40,7 +27,21 @@ class SquadFillApp extends StatelessWidget {
       title: 'SquadFill',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const SplashScreen(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+class AuthWrapper extends ConsumerWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateChangesProvider);
+    return authState.when(
+      data: (user) => user != null ? const MainShell() : const OnboardingScreen(),
+      loading: () => const SplashScreen(),
+      error: (e, s) => const OnboardingScreen(),
     );
   }
 }

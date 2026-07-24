@@ -1,0 +1,145 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 0,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-07-22T10:31:03.827Z",
+    "end": "2026-07-22T10:31:07.413Z",
+    "duration": 3586,
+    "testsRegistered": 1,
+    "passPercent": 0,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "f7c24094-a858-4468-9d89-c02933abb516",
+      "title": "",
+      "fullFile": "C:\\Users\\Pragadeesh Nalan\\.gemini\\antigravity\\scratch\\SquadFill\\tests\\auth.spec.js",
+      "file": "\\tests\\auth.spec.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "ebf7ba90-2a21-4fa8-8d9a-28d47a94573e",
+          "title": "SquadFill Web E2E Test",
+          "fullFile": "C:\\Users\\Pragadeesh Nalan\\.gemini\\antigravity\\scratch\\SquadFill\\tests\\auth.spec.js",
+          "file": "\\tests\\auth.spec.js",
+          "beforeHooks": [
+            {
+              "title": "\"before all\" hook in \"SquadFill Web E2E Test\"",
+              "fullTitle": "SquadFill Web E2E Test \"before all\" hook in \"SquadFill Web E2E Test\"",
+              "timedOut": false,
+              "duration": 834,
+              "state": null,
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "driver = await new Builder().forBrowser('chrome').build();\n// Set a long timeout for the browser to handle slow Flutter bootstrap\nawait driver.manage().setTimeouts({ implicit: 5000, pageLoad: 60000 });",
+              "err": {},
+              "uuid": "a638fc5a-c898-41a4-8def-f68d48c5f298",
+              "parentUUID": "ebf7ba90-2a21-4fa8-8d9a-28d47a94573e",
+              "isHook": true,
+              "skipped": false
+            }
+          ],
+          "afterHooks": [
+            {
+              "title": "\"after all\" hook in \"SquadFill Web E2E Test\"",
+              "fullTitle": "SquadFill Web E2E Test \"after all\" hook in \"SquadFill Web E2E Test\"",
+              "timedOut": false,
+              "duration": 86,
+              "state": null,
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "await driver.quit();",
+              "err": {},
+              "uuid": "f8334cd9-2d8f-4238-b9a0-0b0d5adf2155",
+              "parentUUID": "ebf7ba90-2a21-4fa8-8d9a-28d47a94573e",
+              "isHook": true,
+              "skipped": false
+            }
+          ],
+          "tests": [
+            {
+              "title": "Should show validation error for empty login",
+              "fullTitle": "SquadFill Web E2E Test Should show validation error for empty login",
+              "timedOut": false,
+              "duration": 2657,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "// Enable semantics and give it plenty of time\nawait driver.get('http://localhost:54321/?enable-semantics=true');\nconsole.log('App URL loaded. Waiting for engine bootstrap...');\nawait driver.sleep(15000);\n// 1. Click Sign In on Onboarding\nawait forceClick('Sign In');\nawait driver.sleep(4000);\n// 2. Click Sign In on Login Form (Submit)\nawait forceClick('Sign In');\n// 3. Verify error message appears in page source\nawait driver.sleep(3000);\nconst source = await driver.getPageSource();\nconst hasError = /email|valid|required/i.test(source);\nexpect(hasError).to.equal(true, \"Validation error not found in page source.\");\nconsole.log('Test Passed: Validation detected!');",
+              "err": {
+                "message": "WebDriverError: unknown error: net::ERR_CONNECTION_REFUSED\n  (Session info: chrome=150.0.7871.181)",
+                "estack": "WebDriverError: unknown error: net::ERR_CONNECTION_REFUSED\n  (Session info: chrome=150.0.7871.181)\n    at Object.throwDecodedError (node_modules\\selenium-webdriver\\lib\\error.js:523:15)\n    at parseHttpResponse (node_modules\\selenium-webdriver\\lib\\http.js:527:13)\n    at Executor.execute (node_modules\\selenium-webdriver\\lib\\http.js:459:28)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Driver.execute (node_modules\\selenium-webdriver\\lib\\webdriver.js:745:17)\n    at async Context.<anonymous> (tests\\auth.spec.js:59:5)",
+                "diff": null
+              },
+              "uuid": "aa032486-d0ab-4599-91d0-56fb9f023e15",
+              "parentUUID": "ebf7ba90-2a21-4fa8-8d9a-28d47a94573e",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [],
+          "failures": [
+            "aa032486-d0ab-4599-91d0-56fb9f023e15"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 2657,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 120000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 120000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "10.8.2"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "e2e_report",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "reports",
+        "reportFilename": "e2e_report"
+      },
+      "version": "6.3.2"
+    }
+  }
+}

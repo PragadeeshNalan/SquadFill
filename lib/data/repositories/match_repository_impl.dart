@@ -11,34 +11,14 @@ class MatchRepositoryImpl implements MatchRepository {
 
   @override
   Stream<List<MatchModel>> getActiveMatchesStream({String? sportFilter, String? query}) {
-    Query queryRef = _firestore.collection(AppConstants.matchesCollection);
-
-    // Filter out cancelled games by default, showing only active matches
-    queryRef = queryRef.where('status', isNotEqualTo: 'cancelled');
-
-    return queryRef.snapshots().map((snapshot) {
-      List<MatchModel> matches = snapshot.docs
+    return _firestore.collection(AppConstants.matchesCollection)
+        .where('status', isNotEqualTo: 'cancelled')
+        .snapshots().map((snapshot) {
+      return snapshot.docs
           .map((doc) => MatchModel.fromFirestore(doc))
-          .toList();
-
-      // Sort upcoming matches first (chronologically)
-      matches.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
-      // Apply client-side filters for sport if specified
-      if (sportFilter != null && sportFilter != 'All' && sportFilter.isNotEmpty) {
-        matches = matches.where((m) => m.sport.toLowerCase() == sportFilter.toLowerCase()).toList();
-      }
-
-      // Apply client-side text query filter for title or venue search
-      if (query != null && query.trim().isNotEmpty) {
-        final searchString = query.toLowerCase().trim();
-        matches = matches.where((m) {
-          return m.title.toLowerCase().contains(searchString) || 
-                 m.venue.toLowerCase().contains(searchString);
-        }).toList();
-      }
-
-      return matches;
+          .where((m) => m.dateTime.isAfter(DateTime.now())) // AUTO EXPIRE
+          .where((m) => sportFilter == null || m.sport == sportFilter) // DYNAMIC FILTER
+          .toList()..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     });
   }
 

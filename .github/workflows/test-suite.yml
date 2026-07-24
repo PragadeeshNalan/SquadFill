@@ -1,0 +1,22 @@
+name: SquadFill Full Test Suite
+on: [push]
+jobs:
+  all-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with: {channel: 'stable'}
+      - name: Install
+        run: npm install
+      - name: Build & Run App
+        run: |
+          flutter config --enable-web
+          flutter run -d chrome --web-port 54321 --web-hostname 127.0.0.1 &
+          sleep 60 # WAIT LONGER FOR SERVER
+      - name: Run 2000 Tests
+        run: |
+          node tests/load_test.js
+          npx mocha tests/selenium_ui.spec.js --timeout 15000
+          npx mocha tests/mobile_emulation.spec.js --timeout 15000
+          npx mocha tests/vulnerability.spec.js

@@ -22,7 +22,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    
+
     // Set up smooth logo entry animations
     _logoAnimationController = AnimationController(
       vsync: this,
@@ -49,41 +49,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
   /// Wait for animation, check Riverpod auth stream, and navigate.
   Future<void> _checkSessionState() async {
-    await Future.delayed(const Duration(seconds: 2));
+    // Initial delay for animation
+    await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
 
     final authState = ref.read(authStateChangesProvider);
-    
+
     authState.when(
       data: (user) {
         if (user != null) {
-          // User is authenticated, navigate to Main Shell
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const MainShell(),
-            ),
+            MaterialPageRoute(builder: (context) => const MainShell()),
           );
         } else {
-          // No user, navigate to Onboarding
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const OnboardingScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           );
         }
       },
       error: (err, stack) {
-        // Fallback to onboarding on error
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const OnboardingScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
         );
       },
       loading: () {
-        // If still loading after animation, wait and check again
-        _checkSessionState();
+        // Fallback: If still loading after another 5 seconds, go to Onboarding
+        // this prevents an infinite freeze loop on web if auth is slow.
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && ref.read(authStateChangesProvider).isLoading) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            );
+          }
+        });
       },
     );
   }

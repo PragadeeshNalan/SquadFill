@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:squadfill/presentation/providers/match_providers.dart';
 import 'package:squadfill/presentation/screens/match_detail_screen.dart';
 import 'package:squadfill/core/theme/app_theme.dart';
-import 'package:squadfill/core/constants/app_constants.dart';
 import 'package:squadfill/data/models/match_model.dart';
 
 /// Screen exhibiting real-time list of matches with search and category filters.
@@ -21,53 +20,50 @@ class MatchListScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Search Bar & Header
-            _buildSearchHeader(context, ref, searchQuery),
+        child: Center(
+          // UI ALIGNMENT: Centering and constraining width for Web responsiveness
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                // 1. Search Bar & Header
+                _buildSearchHeader(context, ref, searchQuery),
 
-            // 2. Horizontal Sports filter badges
-            _buildCategorySelector(ref, selectedSport),
-            const SizedBox(height: 16),
-
-            // 3. Real-time Match List
-            Expanded(
-              child: matchesAsync.when(
-                data: (matches) {
-                  if (matches.isEmpty) {
-                    return _buildEmptyState();
-                  }
-                  
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    itemCount: matches.length,
-                    itemBuilder: (context, index) {
-                      final match = matches[index];
-                      return _buildMatchCard(context, match);
-                    },
-                  );
-                },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                // 2. Dynamic Horizontal Sports filter badges
+                matchesAsync.when(
+                  data: (matches) => _buildCategorySelector(ref, selectedSport, matches),
+                  loading: () => const SizedBox(height: 46),
+                  error: (_, __) => const SizedBox(height: 46),
                 ),
-                error: (err, stack) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, color: AppTheme.errorColor, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading matches: ${err.toString()}',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
+
+                const SizedBox(height: 16),
+
+                // 3. Real-time Match List
+                Expanded(
+                  child: matchesAsync.when(
+                    data: (matches) {
+                      if (matches.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        itemCount: matches.length,
+                        itemBuilder: (context, index) {
+                          final match = matches[index];
+                          return _buildMatchCard(context, match);
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primaryColor),
                     ),
-                  );
-                },
-              ),
+                    error: (err, stack) => _buildErrorState(err),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -88,7 +84,6 @@ class MatchListScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Search Input text field
           TextField(
             onChanged: (val) {
               ref.read(searchQueryProvider.notifier).state = val;
@@ -98,11 +93,11 @@ class MatchListScreen extends ConsumerWidget {
               prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondaryColor),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppTheme.textSecondaryColor),
-                      onPressed: () {
-                        ref.read(searchQueryProvider.notifier).state = '';
-                      },
-                    )
+                icon: const Icon(Icons.clear, color: AppTheme.textSecondaryColor),
+                onPressed: () {
+                  ref.read(searchQueryProvider.notifier).state = '';
+                },
+              )
                   : null,
             ),
           ),
@@ -111,10 +106,11 @@ class MatchListScreen extends ConsumerWidget {
     );
   }
 
-  /// Category filter badges list
-  Widget _buildCategorySelector(WidgetRef ref, String selectedSport) {
-    // Add "All" option to categories
-    final List<String> categories = ['All', ...AppConstants.sports];
+  /// Category filter badges list - NOW DYNAMIC
+  Widget _buildCategorySelector(WidgetRef ref, String selectedSport, List<MatchModel> matches) {
+    // DYNAMIC LOGIC: Get unique sports from currently active matches
+    final activeSports = matches.map((m) => m.sport).toSet().toList()..sort();
+    final List<String> categories = ['All', ...activeSports];
 
     return SizedBox(
       height: 46,
@@ -125,7 +121,7 @@ class MatchListScreen extends ConsumerWidget {
         itemBuilder: (context, index) {
           final sport = categories[index];
           final isSelected = selectedSport == sport;
-          
+
           return Padding(
             padding: const EdgeInsets.only(right: 10.0),
             child: FilterChip(
@@ -159,7 +155,7 @@ class MatchListScreen extends ConsumerWidget {
     final formattedDate = DateFormat('EEEE, MMMM d • h:mm a').format(match.dateTime);
     final openSlots = match.maxPlayers - match.currentPlayers;
     final isFull = openSlots <= 0;
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -176,7 +172,6 @@ class MatchListScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sport + Title + Badge Row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -215,13 +210,11 @@ class MatchListScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  
-                  // Open/Full status badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: isFull 
-                          ? Colors.white.withOpacity(0.06) 
+                      color: isFull
+                          ? Colors.white.withOpacity(0.06)
                           : AppTheme.primaryColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -238,8 +231,6 @@ class MatchListScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
-              // Date Row
               Row(
                 children: [
                   const Icon(Icons.access_time_rounded, size: 16, color: AppTheme.textSecondaryColor),
@@ -255,8 +246,6 @@ class MatchListScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 8),
-
-              // Venue location Row
               Row(
                 children: [
                   const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondaryColor),
@@ -275,11 +264,8 @@ class MatchListScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
               const Divider(height: 1),
               const SizedBox(height: 12),
-              
-              // Bottom Slots count & Skill level Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -288,8 +274,8 @@ class MatchListScreen extends ConsumerWidget {
                       const Icon(Icons.people_outline_rounded, size: 16, color: AppTheme.primaryColor),
                       const SizedBox(width: 6),
                       Text(
-                        isFull 
-                            ? 'All slots filled' 
+                        isFull
+                            ? 'All slots filled'
                             : '$openSlots of ${match.maxPlayers} slots open',
                         style: TextStyle(
                           fontSize: 12,
@@ -299,8 +285,6 @@ class MatchListScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  
-                  // Skill label tag
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -325,7 +309,6 @@ class MatchListScreen extends ConsumerWidget {
     );
   }
 
-  /// Builds empty state illustration when list has no items matching filters.
   Widget _buildEmptyState() {
     return SingleChildScrollView(
       child: Padding(
@@ -335,36 +318,39 @@ class MatchListScreen extends ConsumerWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.search_off_rounded,
-                size: 64,
-                color: AppTheme.textSecondaryColor,
-              ),
+              decoration: const BoxDecoration(color: AppTheme.cardColor, shape: BoxShape.circle),
+              child: const Icon(Icons.search_off_rounded, size: 64, color: AppTheme.textSecondaryColor),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'No matches found',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Text('No matches found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text(
               'We couldn\'t find any active matches matching your search filters. Try clearing your search string or toggling different sports.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.textSecondaryColor,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 14, height: 1.4),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object err) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: AppTheme.errorColor, size: 48),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Error loading matches: ${err.toString()}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+        ],
       ),
     );
   }
